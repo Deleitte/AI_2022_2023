@@ -11,16 +11,17 @@
 #define LED_PIN 33
 
 struct NodeInfo {
-  int id;
-  int x_pos;
-  int y_pos;
+  uint32_t id;
+  int32_t x;
+  int32_t y;
+  boolean isOn;
+  uint32_t brightness;
 };
 
 NodeInfo info;
 
 painlessMesh  mesh;
 Scheduler     scheduler;
-JSONVar turnOnMessage;
 
 int lastReading = 4095;
 
@@ -28,50 +29,73 @@ int pinStateCurrent   = LOW;
 int pinStatePrevious  = LOW;
 
 void turnOff();
+void sendChangeBrightnessMessage(int brightness);
+void sendMotionDetectedMessage();
 
 Task taskTurnOff( TASK_SECOND * 20 , TASK_FOREVER, &turnOff );
 
 void turnOff() {
-  Serial.println("Turn off");
-  digitalWrite(LED_PIN, LOW);
+  sendChangeBrightnessMessage(0);
+  info.isOn = false;
+  //Serial.println("Turn off");
+  ledcWrite(0, 0);
 }
 
 void receivedCallback(uint32_t from, String &msg) {
+  Serial.println(msg);
   JSONVar receivedMessage = JSON.parse(msg);
-  if (receivedMessage["type"].operator int() == 0 && int(receivedMessage["x_pos"]) - info.x_pos < 2 && int(receivedMessage["y_pos"]) - info.y_pos < 2) {
-    Serial.println("Received turn on message");
+  if (int(receivedMessage["type"]) == 1 && int(receivedMessage["x"]) - info.x < 2 && int(receivedMessage["y"]) - info.y < 2) {
+    if (info.isOn == false) {
+      sendChangeBrightnessMessage(5);
+      //Serial.println("Received turn on message");
+    }
+    ledcWrite(0, int(255*info.brightness/100));
     taskTurnOff.setInterval( TASK_SECOND * 20 );
-    digitalWrite(LED_PIN, HIGH);
   }
-  Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
+  //Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
 }
 
 void newConnectionCallback(uint32_t nodeId) {
-    Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
+    //Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
 }
 
 void changedConnectionCallback() {
-  Serial.printf("Changed connections\n");
+  //Serial.printf("Changed connections\n");  Serial.println
+
 }
 
-void sendTurnOnMessage() {
-  turnOnMessage["id"] = info.id;
-  turnOnMessage["x_pos"] = info.x_pos;
-  turnOnMessage["y_pos"] = info.y_pos;
-  turnOnMessage["type"] = 0;
-  String jsonString = JSON.stringify(turnOnMessage);
+void sendChangeBrightnessMessage(int brightness) {
+  info.brightness = brightness;
+  JSONVar changeBrightMessage;
+  changeBrightMessage["id"] = info.id;
+  changeBrightMessage["x"] = info.x;
+  changeBrightMessage["y"] = info.y;
+  changeBrightMessage["brightness"] = brightness;
+  changeBrightMessage["type"] = 2;
+
+  String jsonString = JSON.stringify(changeBrightMessage);
   mesh.sendBroadcast(jsonString);
+  Serial.println(jsonString);
+}
+
+void sendMotionDetectedMessage() {
+  JSONVar motionDetectedMessage;
+  motionDetectedMessage["id"] = info.id;
+  motionDetectedMessage["x"] = info.x;
+  motionDetectedMessage["y"] = info.y;
+  motionDetectedMessage["type"] = 1;
+
+  String jsonString = JSON.stringify(motionDetectedMessage);
+  mesh.sendBroadcast(jsonString);
+  Serial.println(jsonString);
 }
 
 void setup() {
   Serial.begin(115200);
 
-  info.id = 1;
-  info.x_pos = 0;
-  info.y_pos = 0;
-
   pinMode(PIR_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT);
+  ledcSetup(0, 5000, 8);
+  ledcAttachPin(LED_PIN, 0);
 
   mesh.setDebugMsgTypes( ERROR | STARTUP );
 
@@ -83,25 +107,45 @@ void setup() {
   scheduler.addTask(taskTurnOff);
   taskTurnOff.enable();
 
+  info.id = mesh.getNodeId();
+  info.x = 1;
+  info.y = 0;
+  info.isOn = false;
+  info.brightness = 0;
+
   pinMode(LIGHT_SENSOR_PIN, INPUT);
 }
 
 void loop() {
+  /*
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    if (input == "turn on") {
+      //digitalWrite(LED_PIN, HIGH);
+      taskTurnOff.setInterval( TASK_SECOND * 20 );
+    }
+    else if (input == "turn off") {
+      digitalWrite(LED_PIN, LOW);
+    }
+  }
+  */
   pinStatePrevious = pinStateCurrent;
   pinStateCurrent = digitalRead(PIR_PIN);
   lastReading = analogRead(LIGHT_SENSOR_PIN);
-
+  
   if (pinStatePrevious == LOW && pinStateCurrent == HIGH) {
-    Serial.println("Motion detected!");
+    //Serial.println("Motion detected!");
     if (lastReading < 2048) {
-      sendTurnOnMessage();
-      digitalWrite(LED_PIN, HIGH);
+      sendMotionDetectedMessage();
+      info.isOn = true;
+      info.brightness = 100;
+      ledcWrite(0, 255);
       taskTurnOff.setInterval( TASK_SECOND * 20 );
     }
   }
   else{
   if (pinStatePrevious == HIGH && pinStateCurrent == LOW) {
-    Serial.println("Motion stopped!");
+    //Serial.println("Motion stopped!");
     //digitalWrite(LED_PIN, LOW);
   }}
   mesh.update();
