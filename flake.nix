@@ -2,9 +2,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
+    mach-nix.url = "github:DavHau/mach-nix";
   };
 
-  outputs = { nixpkgs, flake-utils, ... }:
+  outputs = { nixpkgs, flake-utils, mach-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -14,7 +15,9 @@
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             platformio
-            (python3.withPackages pythonPackages)
+            (mach-nix.lib."${system}".mkPython {
+              requirements = builtins.readFile ./bridge/requirements.txt;
+            })
           ];
         };
       }
