@@ -13,7 +13,7 @@
 #define LED_PIN_3 25
 #define LED_PIN_4 33
 
-#define MIN_AMB_BRIGHTNESS 1000
+#define MIN_AMB_BRIGHTNESS 4095
 
 struct NodeInfo {
   uint32_t id;
@@ -32,8 +32,8 @@ Scheduler     scheduler;
 
 int lastReading = 4095;
 
-int pinStateCurrent   = LOW;
-int pinStatePrevious  = LOW;
+int currentState   = LOW;
+int previousState  = LOW;
 
 bool isNeighbour(int32_t x, int32_t y) {
   return (abs(info.x - x) < 2 && abs(info.y - y) < 2);
@@ -41,36 +41,37 @@ bool isNeighbour(int32_t x, int32_t y) {
 
 void turnOff();
 void sendChangeBrightnessMessage();
-void sendMotionDetectedMessage();
+void sendSwitchMessage(int newStatus);
 
-Task taskTurnOff( TASK_SECOND * 20 , TASK_FOREVER, &turnOff );
+Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
 
 void turnOff() {
   info.detectedMotion = false;
-  Serial.println("turn off");
+  sendSwitchMessage(0);
 }
 
 void sendChangeBrightnessMessage() {
   JSONVar changeBrightMessage;
+  changeBrightMessage["type"] = 2;
   changeBrightMessage["id"] = info.id;
   changeBrightMessage["x"] = info.x;
   changeBrightMessage["y"] = info.y;
   changeBrightMessage["brightness"] = info.brightness;
-  changeBrightMessage["type"] = 2;
 
   String jsonString = JSON.stringify(changeBrightMessage);
   mesh.sendBroadcast(jsonString);
   Serial.println(jsonString);
 }
 
-void sendMotionDetectedMessage() {
-  JSONVar motionDetectedMessage;
-  motionDetectedMessage["id"] = info.id;
-  motionDetectedMessage["x"] = info.x;
-  motionDetectedMessage["y"] = info.y;
-  motionDetectedMessage["type"] = 1;
+void sendSwitchMessage(int newStatus) {
+  JSONVar switchMessage;
+  switchMessage["type"] = 1;
+  switchMessage["id"] = info.id;
+  switchMessage["x"] = info.x;
+  switchMessage["y"] = info.y;
+  switchMessage["status"] = newStatus;
 
-  String jsonString = JSON.stringify(motionDetectedMessage);
+  String jsonString = JSON.stringify(switchMessage);
   mesh.sendBroadcast(jsonString);
   Serial.println(jsonString);
 }
@@ -82,16 +83,15 @@ void receivedCallback(uint32_t from, String &msg) {
   int32_t x = int(receivedMessage["x"]) - info.x + 1;
   int32_t y = int(receivedMessage["y"]) - info.y + 1;
   size_t index = x + y * 3;
-  if (index > 3) index++;
+  if (index > 3) index--;
 
   if (isNeighbour(int(receivedMessage["x"]), int(receivedMessage["y"]))) {
-    if (int(receivedMessage["type"]) == 1) {
+    if (int(receivedMessage["type"]) == 1 && int(receivedMessage["status"]) == 1) {
       neighbours[index] = true;
-    } else if (int(receivedMessage["type"]) == 2 && int(receivedMessage["brigthness"]) == 0) {
+    } else if (int(receivedMessage["type"]) == 1 && int(receivedMessage["status"]) == 0) {
       neighbours[index] = false;
     }
   }
-  //Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
 }
 
 void adaptBrightness(uint32_t brightness) {
@@ -164,7 +164,7 @@ void setup() {
 
   info.id = mesh.getNodeId();
   info.x = 1;
-  info.y = 1;
+  info.y = 0;
   info.brightness = 0;
   info.detectedMotion = false;
 
@@ -184,20 +184,14 @@ void loop() {
     }
   }
   */
-  pinStatePrevious = pinStateCurrent;
-  pinStateCurrent = digitalRead(PIR_PIN);
+  previousState = currentState;
+  currentState = digitalRead(PIR_PIN);
   lastReading = analogRead(LIGHT_SENSOR_PIN);
-  if (pinStatePrevious == LOW && pinStateCurrent == HIGH) {
-    //Serial.println("Motion detected!");
-    sendMotionDetectedMessage();
+  if (previousState == LOW && currentState == HIGH) {
+    sendSwitchMessage(1);
     info.detectedMotion = true;
-    taskTurnOff.setInterval( TASK_SECOND * 20 );
+    taskTurnOff.restartDelayed(20 * TASK_SECOND);
   }
-  else{
-  if (pinStatePrevious == HIGH && pinStateCurrent == LOW) {
-    //Serial.println("Motion stopped!");
-    //digitalWrite(LED_PIN, LOW);
-  }}
 
   controlLigths();
   mesh.update();
