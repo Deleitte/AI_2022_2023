@@ -7,17 +7,22 @@ import json
 
 
 def read_from_cereal(ser: serial.Serial | MockCereal):
-    while ser.in_waiting:
-        line = ser.readline()
+    cereal = serial.Serial('/dev/ttyUSB0', 115200)
+    while True:
+        line = cereal.readline()
+        # TODO: Remove this
+        if line.decode('utf-8')[0] != '{':
+            continue
         line = line.decode('utf-8').strip()
         message = json.loads(line)
 
 
 def write_to_cereal(ser: serial.Serial | MockCereal, queue: Queue):
+    cereal = serial.Serial('/dev/ttyUSB0', 115200)
     while True:
         try:
-            message = queue.get(timeout=1000)
-            ser.write(message)
+            message = queue.get(timeout=1000).encode('utf-8')
+            cereal.write(message)
         except Empty:
             pass
 
@@ -41,5 +46,5 @@ class MockCereal:
             }).encode()
 
     def write(self, data: str):
-        print(f"Wrote {data.encode()} to Serial")
+        print(f"Wrote {data} to Serial")
 

@@ -13,7 +13,7 @@
 #define LED_PIN_3 25
 #define LED_PIN_4 33
 
-#define MIN_AMB_BRIGHTNESS 4095
+#define MIN_AMB_BRIGHTNESS 3000
 
 struct NodeInfo {
   uint32_t id;
