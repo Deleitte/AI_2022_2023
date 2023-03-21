@@ -24,7 +24,7 @@ def write_to_cereal(queue: Queue):
 
 
 queue = Queue()
-bridge = Process(target=append_data, args=(queue,))
+# bridge = Process(target=append_data, args=(queue,))
 
 app = FastAPI()
 
