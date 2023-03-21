@@ -1,20 +1,32 @@
+import serial
 import json
+import os
 from fastapi import FastAPI
-from pydantic import BaseModel
 
 from bridge import *
+from domain import *
 
-class Data(BaseModel):
-    pass
-
-# ser = serial.Serial('/dev/ttyUSB0', 115200)
 
 app = FastAPI()
 
-mock_db = []
+if os.environ.get("STARGAZER_DEBUG"):
+    cereal = MockCereal("/path", 115200)
+else:
+    cereal = serial.Serial("/dev/TTYUSB0", 115200)
 
-@app.get("/")
-def hello():
-    return {
-        "msg": "Hello, World!"
-    }
+read_channel, write_channel, queue = get_bridge(cereal)
+
+read_channel.start()
+write_channel.start()
+
+@app.post("/off")
+async def off() -> CommandResponse:
+    command = Command(type=0, action=0)
+    queue.put(command.json())
+    return CommandResponse(success=True)
+
+@app.post("/on")
+async def on() -> CommandResponse:
+    command = Command(type=0, action=1, brightness=75)
+    queue.put(command.json())
+    return CommandResponse(success=True)
