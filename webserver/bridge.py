@@ -1,13 +1,21 @@
 from __future__ import annotations
+import os
+import serial
+import json
 from random import randint
 from multiprocessing import Process, Queue
 from queue import Empty
-import serial
-import json
+
+
+def create_cereal():
+    if os.environ.get("STARGAZER_DEBUG"):
+        return MockCereal("/path", 115200)
+    else:
+        return serial.Serial('/dev/ttyUSB0', 115200)
 
 
 def read_from_cereal():
-    ser = serial.Serial('/dev/ttyUSB0', 115200)
+    ser = create_cereal() 
     while True:
         line = ser.readline()
         # TODO: Remove this
@@ -18,7 +26,7 @@ def read_from_cereal():
 
 
 def write_to_cereal(queue: Queue):
-    ser = serial.Serial('/dev/ttyUSB0', 115200)
+    ser = create_cereal() 
     while True:
         try:
             message = queue.get(timeout=1000).encode('utf-8')
@@ -27,7 +35,7 @@ def write_to_cereal(queue: Queue):
             pass
 
 
-def get_bridge(ser: serial.Serial | MockCereal) -> tuple[Process, Process, Queue]:
+def get_bridge() -> tuple[Process, Process, Queue]:
     queue = Queue()
     write_process = Process(target=write_to_cereal, args=(queue,))
     read_process = Process(target=read_from_cereal)
