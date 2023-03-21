@@ -3,13 +3,13 @@ import json
 from fastapi import FastAPI
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
+from pydantic import BaseModel
 
-@dataclass
-class Data:
+class Data(BaseModel):
+    
     pass
 
-def read_from_cereal():
-    ser = serial.Serial('/dev/ttyUSB0', 115200)
+def read_from_cereal(ser: serial.Serial):
 
     while ser.in_waiting:
         line = ser.readline()
@@ -17,13 +17,14 @@ def read_from_cereal():
         message = json.loads(line)
 
 
-def write_to_cereal(queue: Queue):
+def write_to_cereal(ser: serial.Serial, queue: Queue):
     while True:
         message = queue.get()
         # write to serial
 
 
 queue = Queue()
+# ser = serial.Serial('/dev/ttyUSB0', 115200)
 # bridge = Process(target=append_data, args=(queue,))
 
 app = FastAPI()

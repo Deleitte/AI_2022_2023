@@ -23,7 +23,7 @@
             platformio
             (mach-nix.lib."${system}".mkPython {
               python = "python310";
-              requirements = builtins.readFile ./bridge/requirements.txt;
+              requirements = builtins.readFile ./webserver/requirements.txt;
             })
           ];
         };
