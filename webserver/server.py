@@ -12,7 +12,7 @@ app = FastAPI()
 if os.environ.get("STARGAZER_DEBUG"):
     cereal = MockCereal("/path", 115200)
 else:
-    cereal = serial.Serial("/dev/TTYUSB0", 115200)
+    cereal = serial.Serial("/dev/ttyUSB0", 115200)
 
 read_channel, write_channel, queue = get_bridge(cereal)
 
