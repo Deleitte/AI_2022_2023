@@ -21,6 +21,7 @@
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             platformio
+            nodejs
             (mach-nix.lib."${system}".mkPython {
               python = "python310";
               requirements = builtins.readFile ./webserver/requirements.txt;

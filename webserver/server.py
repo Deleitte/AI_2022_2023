@@ -1,11 +1,21 @@
-import serial
-import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from bridge import *
 from domain import *
 
 app = FastAPI()
+origins = [
+        "*"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 read_channel, write_channel, queue = get_bridge()
 
