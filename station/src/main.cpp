@@ -21,6 +21,7 @@ struct NodeInfo {
   int32_t y;
   uint32_t brightness;
   bool detectedMotion;
+  bool locked;
 };
 
 bool neighbours[8] = {false};
@@ -42,6 +43,7 @@ bool isNeighbour(int32_t x, int32_t y) {
 void turnOff();
 void sendChangeBrightnessMessage();
 void sendSwitchMessage(int newStatus);
+void sendLockMessage();
 
 Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
 
@@ -76,9 +78,28 @@ void sendSwitchMessage(int newStatus) {
   Serial.println(jsonString);
 }
 
+void sendLockMessage(int action, int brightness=0) {
+  JSONVar lockMessage;
+  lockMessage["type"] = 0;
+  lockMessage["action"] = action;
+  lockMessage["brightness"] = brightness;
+  mesh.sendBroadcast(JSON.stringify(lockMessage), true);
+}
+
 void receivedCallback(uint32_t from, String &msg) {
   Serial.println("Received:" + msg);
   JSONVar receivedMessage = JSON.parse(msg);
+
+  if (int(receivedMessage["type"]) == 0) {
+    if (int(receivedMessage["action"]) == 1) {
+      info.brightness = int(receivedMessage["brightness"]);
+      info.locked = true;
+    } else {
+      info.brightness = 0;
+      info.locked = false;
+    }
+    
+  }
 
   int32_t x = int(receivedMessage["x"]) - info.x + 1;
   int32_t y = int(receivedMessage["y"]) - info.y + 1;
@@ -105,8 +126,9 @@ void adaptBrightness(uint32_t brightness) {
 }
 
 void controlLigths() {
-
-  if (lastReading < MIN_AMB_BRIGHTNESS) {
+  if (info.locked) {
+    adaptBrightness(info.brightness);
+  } else if (lastReading < MIN_AMB_BRIGHTNESS) {
     if (info.detectedMotion) {
       adaptBrightness(100);
     } else {
@@ -167,23 +189,23 @@ void setup() {
   info.y = 0;
   info.brightness = 0;
   info.detectedMotion = false;
+  info.locked = false;
 
   pinMode(LIGHT_SENSOR_PIN, INPUT);
 }
 
 void loop() {
-  /*
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
-    if (input == "turn on") {
-      //digitalWrite(LED_PIN, HIGH);
-      taskTurnOff.setInterval( TASK_SECOND * 20 );
-    }
-    else if (input == "turn off") {
-      digitalWrite(LED_PIN, LOW);
+    JSONVar receivedMessage = JSON.parse(input);
+    if (int(receivedMessage["type"]) == 0) {
+      if (int(receivedMessage["action"]) == 1) {
+        sendLockMessage(int(receivedMessage["action"]), int(receivedMessage["brightness"]));
+      } else {
+        sendLockMessage(int(receivedMessage["action"]));
+      }
     }
   }
-  */
   previousState = currentState;
   currentState = digitalRead(PIR_PIN);
   lastReading = analogRead(LIGHT_SENSOR_PIN);
