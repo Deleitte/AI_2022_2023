@@ -6,10 +6,10 @@ import serial
 import json
 
 
-def read_from_cereal(ser: serial.Serial | MockCereal):
-    cereal = serial.Serial('/dev/ttyUSB0', 115200)
+def read_from_cereal():
+    ser = serial.Serial('/dev/ttyUSB0', 115200)
     while True:
-        line = cereal.readline()
+        line = ser.readline()
         # TODO: Remove this
         if line.decode('utf-8')[0] != '{':
             continue
@@ -17,20 +17,20 @@ def read_from_cereal(ser: serial.Serial | MockCereal):
         message = json.loads(line)
 
 
-def write_to_cereal(ser: serial.Serial | MockCereal, queue: Queue):
-    cereal = serial.Serial('/dev/ttyUSB0', 115200)
+def write_to_cereal(queue: Queue):
+    ser = serial.Serial('/dev/ttyUSB0', 115200)
     while True:
         try:
             message = queue.get(timeout=1000).encode('utf-8')
-            cereal.write(message)
+            ser.write(message)
         except Empty:
             pass
 
 
 def get_bridge(ser: serial.Serial | MockCereal) -> tuple[Process, Process, Queue]:
     queue = Queue()
-    write_process = Process(target=write_to_cereal, args=(ser, queue))
-    read_process = Process(target=read_from_cereal, args=(ser,))
+    write_process = Process(target=write_to_cereal, args=(queue,))
+    read_process = Process(target=read_from_cereal)
     return (read_process, write_process, queue)
 
 
