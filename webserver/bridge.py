@@ -18,6 +18,7 @@ def read_from_cereal():
     ser = create_cereal() 
     while True:
         line = ser.readline()
+        print(line)
         # TODO: Remove this
         if line.decode('utf-8')[0] != '{':
             continue
