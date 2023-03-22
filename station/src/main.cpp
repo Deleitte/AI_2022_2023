@@ -37,28 +37,52 @@ int currentState   = LOW;
 int previousState  = LOW;
 
 bool isNeighbour(int32_t x, int32_t y) {
-  return (abs(info.x - x) < 2 && abs(info.y - y) < 2);
+  return (abs(info.x - x) < 2 && abs(info.y - y) < 2) && !(info.x == x && info.y == y);
 }
 
 void turnOff();
+void sendKeepAliveMessage();
 void sendChangeBrightnessMessage();
 void sendSwitchMessage(int newStatus);
 void sendLockMessage(int action, int brightness);
 
 Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
+Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, &sendKeepAliveMessage);
 
 void turnOff() {
   info.detectedMotion = false;
   sendSwitchMessage(0);
 }
 
+void sendLockMessage(int action, int brightness=0) {
+  JSONVar lockMessage;
+  lockMessage["type"] = 0;
+  lockMessage["action"] = action;
+  lockMessage["brightness"] = brightness;
+  mesh.sendBroadcast(JSON.stringify(lockMessage), true);
+}
+
+void sendKeepAliveMessage() {
+  JSONVar keepAliveMessage;
+  keepAliveMessage["type"] = 1;
+  keepAliveMessage["action"] = 0;
+  keepAliveMessage["id"] = info.id;
+  keepAliveMessage["x"] = info.x;
+  keepAliveMessage["y"] = info.y;
+
+  String jsonString = JSON.stringify(keepAliveMessage);
+  mesh.sendBroadcast(jsonString);
+}
+
 void sendChangeBrightnessMessage() {
   JSONVar changeBrightMessage;
   changeBrightMessage["type"] = 1;
+  changeBrightMessage["action"] = 1;
   changeBrightMessage["id"] = info.id;
   changeBrightMessage["x"] = info.x;
   changeBrightMessage["y"] = info.y;
   changeBrightMessage["brightness"] = info.brightness;
+  changeBrightMessage["overrided"] = info.locked;
 
   String jsonString = JSON.stringify(changeBrightMessage);
   mesh.sendBroadcast(jsonString);
@@ -75,14 +99,6 @@ void sendSwitchMessage(int newStatus) {
 
   String jsonString = JSON.stringify(switchMessage);
   mesh.sendBroadcast(jsonString);
-}
-
-void sendLockMessage(int action, int brightness=0) {
-  JSONVar lockMessage;
-  lockMessage["type"] = 0;
-  lockMessage["action"] = action;
-  lockMessage["brightness"] = brightness;
-  mesh.sendBroadcast(JSON.stringify(lockMessage), true);
 }
 
 void receivedCallback(uint32_t from, String &msg) {
@@ -115,7 +131,6 @@ void receivedCallback(uint32_t from, String &msg) {
 }
 
 void adaptBrightness(uint32_t brightness) {
-  
   if (brightness != info.brightness) {
     info.brightness = brightness;
     sendChangeBrightnessMessage();
@@ -173,14 +188,11 @@ void setup() {
   pinMode(LED_PIN_2, OUTPUT);
   pinMode(LED_PIN_3, OUTPUT);
   pinMode(LED_PIN_4, OUTPUT);
+  pinMode(LIGHT_SENSOR_PIN, INPUT);
 
   mesh.setDebugMsgTypes( ERROR | STARTUP );
-
   mesh.init(SSID, PASSWORD, &scheduler, PORT);
   mesh.onReceive(&receivedCallback);
-
-  scheduler.addTask(taskTurnOff);
-  taskTurnOff.enable();
 
   info.id = mesh.getNodeId();
   info.x = 1;
@@ -189,7 +201,10 @@ void setup() {
   info.detectedMotion = false;
   info.locked = false;
 
-  pinMode(LIGHT_SENSOR_PIN, INPUT);
+  scheduler.addTask(taskTurnOff);
+  scheduler.addTask(taskSendKeepAliveMessage);
+  taskTurnOff.enable();
+  taskSendKeepAliveMessage.enable();
 }
 
 void loop() {
@@ -197,10 +212,10 @@ void loop() {
     String input = Serial.readStringUntil('\n');
     JSONVar receivedMessage = JSON.parse(input);
     if (int(receivedMessage["type"]) == 0) {
-      if (int(receivedMessage["action"]) == 1) {
-        sendLockMessage(int(receivedMessage["action"]), int(receivedMessage["brightness"]));
-      } else {
+      if (int(receivedMessage["action"]) == 0) {
         sendLockMessage(int(receivedMessage["action"]));
+      } else if (int(receivedMessage["action"]) == 1){
+        sendLockMessage(int(receivedMessage["action"]), int(receivedMessage["brightness"]));
       }
     }
   }
