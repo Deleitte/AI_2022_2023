@@ -43,7 +43,7 @@ bool isNeighbour(int32_t x, int32_t y) {
 void turnOff();
 void sendChangeBrightnessMessage();
 void sendSwitchMessage(int newStatus);
-void sendLockMessage();
+void sendLockMessage(int action, int brightness);
 
 Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
 
@@ -54,7 +54,7 @@ void turnOff() {
 
 void sendChangeBrightnessMessage() {
   JSONVar changeBrightMessage;
-  changeBrightMessage["type"] = 2;
+  changeBrightMessage["type"] = 1;
   changeBrightMessage["id"] = info.id;
   changeBrightMessage["x"] = info.x;
   changeBrightMessage["y"] = info.y;
@@ -67,7 +67,7 @@ void sendChangeBrightnessMessage() {
 
 void sendSwitchMessage(int newStatus) {
   JSONVar switchMessage;
-  switchMessage["type"] = 1;
+  switchMessage["type"] = 2;
   switchMessage["id"] = info.id;
   switchMessage["x"] = info.x;
   switchMessage["y"] = info.y;
@@ -75,7 +75,6 @@ void sendSwitchMessage(int newStatus) {
 
   String jsonString = JSON.stringify(switchMessage);
   mesh.sendBroadcast(jsonString);
-  Serial.println(jsonString);
 }
 
 void sendLockMessage(int action, int brightness=0) {
@@ -87,30 +86,30 @@ void sendLockMessage(int action, int brightness=0) {
 }
 
 void receivedCallback(uint32_t from, String &msg) {
-  Serial.println("Received:" + msg);
   JSONVar receivedMessage = JSON.parse(msg);
 
   if (int(receivedMessage["type"]) == 0) {
-    if (int(receivedMessage["action"]) == 1) {
-      info.brightness = int(receivedMessage["brightness"]);
-      info.locked = true;
-    } else {
+    if (int(receivedMessage["action"]) == 0) {
       info.brightness = 0;
       info.locked = false;
+    } else if (int(receivedMessage["action"]) == 1) {
+      info.brightness = int(receivedMessage["brightness"]);
+      info.locked = true;
     }
-    
-  }
+  } else if (int(receivedMessage["type"]) == 1) {
+    Serial.println(msg);
+  } else if (int(receivedMessage["type"]) == 2) {
+    int32_t x = int(receivedMessage["x"]) - info.x + 1;
+    int32_t y = int(receivedMessage["y"]) - info.y + 1;
+    size_t index = x + y * 3;
+    if (index > 3) index--;
 
-  int32_t x = int(receivedMessage["x"]) - info.x + 1;
-  int32_t y = int(receivedMessage["y"]) - info.y + 1;
-  size_t index = x + y * 3;
-  if (index > 3) index--;
-
-  if (isNeighbour(int(receivedMessage["x"]), int(receivedMessage["y"]))) {
-    if (int(receivedMessage["type"]) == 1 && int(receivedMessage["status"]) == 1) {
-      neighbours[index] = true;
-    } else if (int(receivedMessage["type"]) == 1 && int(receivedMessage["status"]) == 0) {
-      neighbours[index] = false;
+    if (isNeighbour(int(receivedMessage["x"]), int(receivedMessage["y"]))) {
+      if (int(receivedMessage["status"]) == 0) {
+        neighbours[index] = false;
+      } else if (int(receivedMessage["status"]) == 1) {
+        neighbours[index] = true;
+      }
     }
   }
 }
@@ -179,7 +178,6 @@ void setup() {
 
   mesh.init(SSID, PASSWORD, &scheduler, PORT);
   mesh.onReceive(&receivedCallback);
-
 
   scheduler.addTask(taskTurnOff);
   taskTurnOff.enable();
