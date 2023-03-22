@@ -6,7 +6,6 @@ from random import randint
 from multiprocessing import Process, Queue
 from queue import Empty
 
-
 def create_cereal():
     if os.environ.get("STARGAZER_DEBUG"):
         return MockCereal("/path", 115200)

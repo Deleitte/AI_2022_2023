@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import pymongo
 
 from bridge import *
 from domain import *
@@ -37,3 +38,4 @@ async def on(body: OnRequest) -> CommandResponse:
     command = OnCommand(brightness=body.brightness)
     queue.put(command.json())
     return CommandResponse(success=True)
+

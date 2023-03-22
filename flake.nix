@@ -14,7 +14,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        pythonPackages = p: with p; [ pyserial ];
 
       in
       {
@@ -26,6 +25,7 @@
               python = "python310";
               requirements = builtins.readFile ./webserver/requirements.txt;
             })
+            mongosh
           ];
         };
       }
