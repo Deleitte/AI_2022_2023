@@ -1,6 +1,6 @@
 import { h } from "preact";
 import axios from "axios";
-import { Button, Slider, Stack, Typography } from "@mui/material";
+import { Button, Paper, Slider, Stack, Typography } from "@mui/material";
 import { useState } from "preact/hooks";
 
 const Home = () => {
@@ -15,33 +15,35 @@ const Home = () => {
   };
 
   return (
-    <Stack spacing={2} sx={{ mb: 1 }}>
-      <Typography variant="h4">Brightness: {brightness}%</Typography>
-      <Stack spacing={2} direction="row" alignItems="center">
-        <Slider
-          aria-label="Override brightness"
-          defaultValue={0}
-          step={25}
-          marks
-          min={0}
-          max={100}
-          valueLabelDisplay="auto"
-          onChange={(_, value) => setBrightness(value as number)}
-        />
+    <Paper elevation={3}>
+      <Stack spacing={4} sx={{ mb: 1 }} padding={6} textAlign="center">
+        <Typography variant="h4">Brightness Override: {brightness}%</Typography>
+        <Stack spacing={2} direction="row" alignItems="center">
+          <Slider
+            aria-label="Override brightness"
+            defaultValue={0}
+            step={25}
+            marks
+            min={0}
+            max={100}
+            valueLabelDisplay="auto"
+            onChange={(_, value) => setBrightness(value as number)}
+          />
 
-        <Button variant="contained" onClick={() => override()}>
-          Override Brightness
+          <Button variant="contained" onClick={() => override()}>
+            Override Brightness
+          </Button>
+        </Stack>
+
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => removeOverride()}
+        >
+          Remove override
         </Button>
       </Stack>
-
-      <Button
-        variant="contained"
-        color="secondary"
-        onClick={() => removeOverride()}
-      >
-        Remove override
-      </Button>
-    </Stack>
+    </Paper>
   );
 };
 

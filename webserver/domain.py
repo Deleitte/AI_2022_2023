@@ -1,12 +1,22 @@
 from pydantic import BaseModel
 
 
+# Messages sent to the ESPs
 class Command(BaseModel):
-    type: int
+    type: int = 0
     action: int
-    brightness: int | None = None
 
 
+class OnCommand(Command):
+    action: int = 1 
+    brightness: int 
+
+
+class OffCommand(Command):
+    action: int = 0 
+
+
+# DTOs for the web server's endpoints
 class CommandResponse(BaseModel):
     success: bool
 
