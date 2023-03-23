@@ -2,6 +2,11 @@
 #include "Arduino_JSON.h"
 #include "WiFi.h"
 
+#define MIN_AMB_BRIGHTNESS 3000
+#define STATION_ID 1
+#define STATION_POS_X 0
+#define STATION_POS_Y 0
+
 #define   SSID       "starGazer"
 #define   PASSWORD   "12345678910"
 #define   PORT       6969
@@ -13,8 +18,6 @@
 #define LED_PIN_3 25
 #define LED_PIN_4 33
 
-#define MIN_AMB_BRIGHTNESS 3000
-
 struct NodeInfo {
   uint32_t id;
   int32_t x;
@@ -24,27 +27,20 @@ struct NodeInfo {
   bool locked;
 };
 
-bool neighbours[8] = {false};
-
 NodeInfo info;
 painlessMesh  mesh;
 Scheduler     scheduler;
 
-
 int lastReading = 4095;
-
 int currentState   = LOW;
 int previousState  = LOW;
-
-bool isNeighbour(int32_t x, int32_t y) {
-  return (abs(info.x - x) < 2 && abs(info.y - y) < 2) && !(info.x == x && info.y == y);
-}
+bool neighbours[8] = {false};
 
 void turnOff();
 void sendKeepAliveMessage();
 void sendChangeBrightnessMessage();
 void sendSwitchMessage(int newStatus);
-void sendLockMessage(int action, int brightness);
+void sendLockMessage(uint32_t id, int action, int brightness);
 
 Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
 Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, &sendKeepAliveMessage);
@@ -54,9 +50,10 @@ void turnOff() {
   sendSwitchMessage(0);
 }
 
-void sendLockMessage(int action, int brightness=0) {
+void sendLockMessage(uint32_t id, int action, int brightness=0) {
   JSONVar lockMessage;
   lockMessage["type"] = 0;
+  lockMessage["id"] = id;
   lockMessage["action"] = action;
   lockMessage["brightness"] = brightness;
   mesh.sendBroadcast(JSON.stringify(lockMessage), true);
@@ -85,8 +82,7 @@ void sendChangeBrightnessMessage() {
   changeBrightMessage["overrided"] = info.locked;
 
   String jsonString = JSON.stringify(changeBrightMessage);
-  mesh.sendBroadcast(jsonString);
-  Serial.println(jsonString);
+  mesh.sendBroadcast(jsonString, true);
 }
 
 void sendSwitchMessage(int newStatus) {
@@ -101,16 +97,30 @@ void sendSwitchMessage(int newStatus) {
   mesh.sendBroadcast(jsonString);
 }
 
+void adaptBrightness(uint32_t brightness) {
+  if (brightness != info.brightness) {
+    info.brightness = brightness;
+    sendChangeBrightnessMessage();
+  } else {
+    info.brightness = brightness;
+  }
+}
+
+
+bool isNeighbour(int32_t x, int32_t y) {
+  return (abs(info.x - x) < 2 && abs(info.y - y) < 2) && !(info.x == x && info.y == y);
+}
+
 void receivedCallback(uint32_t from, String &msg) {
   JSONVar receivedMessage = JSON.parse(msg);
 
   if (int(receivedMessage["type"]) == 0) {
-    if (int(receivedMessage["action"]) == 0) {
-      info.brightness = 0;
+    if (int(receivedMessage["action"]) == 0 && (uint32_t(receivedMessage["id"]) == info.id || uint32_t(receivedMessage["id"]) == 0)) {
       info.locked = false;
-    } else if (int(receivedMessage["action"]) == 1) {
-      info.brightness = int(receivedMessage["brightness"]);
+      adaptBrightness(0);
+    } else if (int(receivedMessage["action"]) == 1 && (uint32_t(receivedMessage["id"]) == info.id || uint32_t(receivedMessage["id"]) == 0)) {
       info.locked = true;
+      adaptBrightness(int(receivedMessage["brightness"]));
     }
   } else if (int(receivedMessage["type"]) == 1) {
     Serial.println(msg);
@@ -130,14 +140,7 @@ void receivedCallback(uint32_t from, String &msg) {
   }
 }
 
-void adaptBrightness(uint32_t brightness) {
-  if (brightness != info.brightness) {
-    info.brightness = brightness;
-    sendChangeBrightnessMessage();
-  } else {
-    info.brightness = brightness;
-  }
-}
+
 
 void controlLigths() {
   if (info.locked) {
@@ -194,9 +197,9 @@ void setup() {
   mesh.init(SSID, PASSWORD, &scheduler, PORT);
   mesh.onReceive(&receivedCallback);
 
-  info.id = mesh.getNodeId();
-  info.x = 1;
-  info.y = 0;
+  info.id = STATION_ID;
+  info.x = STATION_POS_X;
+  info.y = STATION_POS_Y;
   info.brightness = 0;
   info.detectedMotion = false;
   info.locked = false;
@@ -213,9 +216,9 @@ void loop() {
     JSONVar receivedMessage = JSON.parse(input);
     if (int(receivedMessage["type"]) == 0) {
       if (int(receivedMessage["action"]) == 0) {
-        sendLockMessage(int(receivedMessage["action"]));
+        sendLockMessage(uint32_t(receivedMessage["id"]), int(receivedMessage["action"]));
       } else if (int(receivedMessage["action"]) == 1){
-        sendLockMessage(int(receivedMessage["action"]), int(receivedMessage["brightness"]));
+        sendLockMessage(uint32_t(receivedMessage["id"]), int(receivedMessage["action"]), int(receivedMessage["brightness"]));
       }
     }
   }
