@@ -25,9 +25,9 @@ write_channel.start()
 
 
 @app.post("/off")
-async def off() -> CommandResponse:
+async def off(body: OffRequest) -> CommandResponse:
     global queue
-    command = OffCommand()
+    command = OffCommand(id=body.id)
     queue.put(command.json())
     return CommandResponse(success=True)
 
@@ -35,7 +35,8 @@ async def off() -> CommandResponse:
 @app.post("/on")
 async def on(body: OnRequest) -> CommandResponse:
     global queue
-    command = OnCommand(brightness=body.brightness)
+    command = OnCommand(id=body.id, brightness=body.brightness)
+    print(command.json())
     queue.put(command.json())
     return CommandResponse(success=True)
 

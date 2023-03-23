@@ -14,6 +14,7 @@ class Command(BaseModel):
 
 class OnCommand(Command):
     action: int = 1 
+    id: int
     brightness: int 
 
 
@@ -27,8 +28,12 @@ class CommandResponse(BaseModel):
 
 
 class OnRequest(BaseModel):
+    id: int
     brightness: int 
 
+
+class OffRequest(BaseModel):
+    id: int
 
 class Station(BaseModel):
     node_id: str
