@@ -1,5 +1,6 @@
 from __future__ import annotations
-from pydantic import BaseModel
+from typing import Annotated, Literal
+from pydantic import BaseModel, Field
 import enum
 
 class RType(enum.Enum):
@@ -20,6 +21,28 @@ class OnCommand(Command):
 
 class OffCommand(Command):
     action: int = 0 
+
+
+# Messages sent from the ESPs
+class BaseESPMessage(BaseModel):
+    type: int = 1
+    action: int
+    id: int
+    x: int
+    y: int
+
+
+class KeepAliveMessage(BaseESPMessage):
+    action: Literal[0] = 0
+
+
+class ChangeBrightnessMessage(BaseESPMessage):
+    action: Literal[1] = 1
+    brightness: int
+    overrided: bool
+
+
+ESPMessage = Annotated[KeepAliveMessage | ChangeBrightnessMessage, Field(discriminator='action')]
 
 
 # DTOs for the web server's endpoints

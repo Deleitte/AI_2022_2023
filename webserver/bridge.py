@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 import os
 import serial
-import json
-from random import randint
+import pydantic
 from multiprocessing import Process, Queue
 from queue import Empty
 
-def create_cereal():
+from domain import ESPMessage, KeepAliveMessage
+
+
+def create_cereal() -> serial.Serial | MockCereal:
     if os.environ.get("STARGAZER_DEBUG"):
         return MockCereal("/path", 115200)
     else:
@@ -14,7 +17,7 @@ def create_cereal():
 
 
 def read_from_cereal():
-    ser = create_cereal() 
+    ser = create_cereal()
     while True:
         line = ser.readline()
         print(line)
@@ -22,7 +25,8 @@ def read_from_cereal():
         if line.decode('utf-8')[0] != '{':
             continue
         line = line.decode('utf-8').strip()
-        message = json.loads(line)
+        message = pydantic.parse_raw_as(ESPMessage, line) 
+        print(message, type(message))
 
 
 def write_to_cereal(queue: Queue):
@@ -49,9 +53,8 @@ class MockCereal:
         self.baudrate = baudrate
 
     def readline(self) -> bytes:
-        return json.dumps({
-            "state": "on" if randint(0, 1) else "off"
-            }).encode()
+        message = KeepAliveMessage(id=214, x=5, y=8)
+        return message.json().encode()
 
     def write(self, data: str):
         print(f"Wrote {data} to Serial")
