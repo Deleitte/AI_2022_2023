@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from datetime import datetime
 from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 import enum
@@ -58,6 +60,8 @@ class OnRequest(BaseModel):
 class OffRequest(BaseModel):
     id: int
 
+
+# Database models
 class Station(BaseModel):
     node_id: str
     name: str
@@ -67,7 +71,8 @@ class Station(BaseModel):
 
 
 class Timeseries(BaseModel):
+    id: int
     override: bool
-    timestamp: int
-    type: RType
+    timestamp: datetime
+    #type: RType
     brightness: int

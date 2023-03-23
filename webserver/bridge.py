@@ -1,12 +1,15 @@
 from __future__ import annotations
+from datetime import datetime
 
 import os
+from typing_extensions import override
 import serial
 import pydantic
 from multiprocessing import Process, Queue
 from queue import Empty
+from database import get_database
 
-from domain import ESPMessage, KeepAliveMessage
+from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Timeseries
 
 
 def create_cereal() -> serial.Serial | MockCereal:
@@ -18,6 +21,8 @@ def create_cereal() -> serial.Serial | MockCereal:
 
 def read_from_cereal():
     ser = create_cereal()
+    db = get_database()
+
     while True:
         line = ser.readline()
         print(line)
@@ -26,7 +31,10 @@ def read_from_cereal():
             continue
         line = line.decode('utf-8').strip()
         message = pydantic.parse_raw_as(ESPMessage, line) 
-        print(message, type(message))
+        match message:
+            case ChangeBrightnessMessage(id=node_id, brightness=brightness, overrided=overrided):
+                timeseries = Timeseries(id=node_id, brightness=brightness, override=overrided, timestamp=datetime.now())
+                db.timeseries.insert_one(timeseries.dict())
 
 
 def write_to_cereal(queue: Queue):
