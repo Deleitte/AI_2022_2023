@@ -36,6 +36,7 @@ int lastReading = 4095;
 int currentState   = LOW;
 int previousState  = LOW;
 bool neighbours[8] = {false};
+int readingAverage = 4095;
 
 void sendChangeBrightnessMessage();
 void sendSwitchMessage();
@@ -61,6 +62,10 @@ Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, []() {
 
   String jsonString = JSON.stringify(keepAliveMessage);
   mesh.sendBroadcast(jsonString);
+});
+
+Task taskReadLightSensor(TASK_SECOND * 1, TASK_FOREVER, []() {
+  readingAverage = analogRead(LIGHT_SENSOR_PIN)*0.2 + readingAverage*0.8;
 });
 
 void sendLockMessage(uint32_t id, int action, int brightness=0) {
@@ -137,12 +142,10 @@ void receivedCallback(uint32_t from, String &msg) {
   }
 }
 
-
-
 void controlLigths() {
   if (info.locked) {
     adaptBrightness(info.brightness);
-  } else if (lastReading < MIN_AMB_BRIGHTNESS) {
+  } else if (readingAverage < MIN_AMB_BRIGHTNESS) {
     if (info.detectedMotion) {
       adaptBrightness(100);
     } else {
@@ -204,9 +207,12 @@ void setup() {
   scheduler.addTask(taskTurnOff);
   scheduler.addTask(taskSendKeepAliveMessage);
   scheduler.addTask(taskCleanNeighbours);
+  scheduler.addTask(taskReadLightSensor);
+
   taskTurnOff.enable();
   taskSendKeepAliveMessage.enable();
   taskCleanNeighbours.enable();
+  taskReadLightSensor.enable();
 }
 
 void loop() {
@@ -223,7 +229,6 @@ void loop() {
   }
   previousState = currentState;
   currentState = digitalRead(PIR_PIN);
-  lastReading = analogRead(LIGHT_SENSOR_PIN);
   if (previousState == LOW && currentState == HIGH) {
     sendSwitchMessage();
     info.detectedMotion = true;
