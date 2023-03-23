@@ -6,6 +6,8 @@
 #define STATION_POS_X 0
 #define STATION_POS_Y 0
 
+#define TURN_OFF_TIME 20
+
 #define   SSID       "starGazer"
 #define   PASSWORD   "12345678910"
 #define   PORT       6969
@@ -35,30 +37,21 @@ int currentState   = LOW;
 int previousState  = LOW;
 bool neighbours[8] = {false};
 
-void turnOff();
-void sendKeepAliveMessage();
 void sendChangeBrightnessMessage();
-void sendSwitchMessage(int newStatus);
+void sendSwitchMessage();
 void sendLockMessage(uint32_t id, int action, int brightness);
 
-Task taskTurnOff(TASK_SECOND * 20, TASK_ONCE, &turnOff);
-Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, &sendKeepAliveMessage);
-
-void turnOff() {
+Task taskTurnOff(TASK_SECOND * TURN_OFF_TIME, TASK_ONCE, []() {
   info.detectedMotion = false;
-  sendSwitchMessage(0);
-}
+});
 
-void sendLockMessage(uint32_t id, int action, int brightness=0) {
-  JSONVar lockMessage;
-  lockMessage["type"] = 0;
-  lockMessage["id"] = id;
-  lockMessage["action"] = action;
-  lockMessage["brightness"] = brightness;
-  mesh.sendBroadcast(JSON.stringify(lockMessage), true);
-}
+Task taskCleanNeighbours(TASK_SECOND * 10, TASK_ONCE, []() {
+  for (int i = 0; i < 8; i++) {
+    neighbours[i] = false;
+  }
+});
 
-void sendKeepAliveMessage() {
+Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, []() {
   JSONVar keepAliveMessage;
   keepAliveMessage["type"] = 1;
   keepAliveMessage["action"] = 0;
@@ -68,6 +61,15 @@ void sendKeepAliveMessage() {
 
   String jsonString = JSON.stringify(keepAliveMessage);
   mesh.sendBroadcast(jsonString);
+});
+
+void sendLockMessage(uint32_t id, int action, int brightness=0) {
+  JSONVar lockMessage;
+  lockMessage["type"] = 0;
+  lockMessage["id"] = id;
+  lockMessage["action"] = action;
+  lockMessage["brightness"] = brightness;
+  mesh.sendBroadcast(JSON.stringify(lockMessage), true);
 }
 
 void sendChangeBrightnessMessage() {
@@ -84,13 +86,12 @@ void sendChangeBrightnessMessage() {
   mesh.sendBroadcast(jsonString, true);
 }
 
-void sendSwitchMessage(int newStatus) {
+void sendSwitchMessage() {
   JSONVar switchMessage;
   switchMessage["type"] = 2;
   switchMessage["id"] = info.id;
   switchMessage["x"] = info.x;
   switchMessage["y"] = info.y;
-  switchMessage["status"] = newStatus;
 
   String jsonString = JSON.stringify(switchMessage);
   mesh.sendBroadcast(jsonString);
@@ -130,11 +131,8 @@ void receivedCallback(uint32_t from, String &msg) {
     if (index > 3) index--;
 
     if (isNeighbour(int(receivedMessage["x"]), int(receivedMessage["y"]))) {
-      if (int(receivedMessage["status"]) == 0) {
-        neighbours[index] = false;
-      } else if (int(receivedMessage["status"]) == 1) {
-        neighbours[index] = true;
-      }
+      neighbours[index] = true;
+      taskCleanNeighbours.restartDelayed(TURN_OFF_TIME * TASK_SECOND);
     }
   }
 }
@@ -205,8 +203,10 @@ void setup() {
 
   scheduler.addTask(taskTurnOff);
   scheduler.addTask(taskSendKeepAliveMessage);
+  scheduler.addTask(taskCleanNeighbours);
   taskTurnOff.enable();
   taskSendKeepAliveMessage.enable();
+  taskCleanNeighbours.enable();
 }
 
 void loop() {
@@ -225,9 +225,9 @@ void loop() {
   currentState = digitalRead(PIR_PIN);
   lastReading = analogRead(LIGHT_SENSOR_PIN);
   if (previousState == LOW && currentState == HIGH) {
-    sendSwitchMessage(1);
+    sendSwitchMessage();
     info.detectedMotion = true;
-    taskTurnOff.restartDelayed(20 * TASK_SECOND);
+    taskTurnOff.restartDelayed(TURN_OFF_TIME * TASK_SECOND);
   }
 
   controlLigths();
