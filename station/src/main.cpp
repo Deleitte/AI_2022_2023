@@ -3,7 +3,6 @@
 #include "WiFi.h"
 
 #define MIN_AMB_BRIGHTNESS 3000
-#define STATION_ID 1
 #define STATION_POS_X 0
 #define STATION_POS_Y 0
 
@@ -197,7 +196,7 @@ void setup() {
   mesh.init(SSID, PASSWORD, &scheduler, PORT);
   mesh.onReceive(&receivedCallback);
 
-  info.id = STATION_ID;
+  info.id = mesh.getNodeId()%1000000000;
   info.x = STATION_POS_X;
   info.y = STATION_POS_Y;
   info.brightness = 0;

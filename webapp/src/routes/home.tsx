@@ -50,13 +50,14 @@ const fetchedData = [
 
 const Home = () => {
   const [brightness, setBrightness] = useState<number>(0);
+  const id = "0";
 
   const override = async () => {
-    await axios.post("http://localhost:8000/on", { brightness });
+    await axios.post("http://localhost:8000/on", { brightness, id });
   };
 
   const removeOverride = async () => {
-    await axios.post("http://localhost:8000/off");
+    await axios.post("http://localhost:8000/off", { id });
   };
 
   const data = fetchedData.map((d) => ({
