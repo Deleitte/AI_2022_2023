@@ -7,73 +7,46 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Box } from "@mui/system";
 
-const data = [
+const fetchedData = [
   {
-    name: "Station 1",
-    data: [
-      {
-        timestamp: 1,
-        brightness: 50,
-      },
-      {
-        timestamp: 5,
-        brightness: 0,
-      },
-      {
-        timestamp: 10,
-        brightness: 50,
-      },
-    ],
+    timestamp: 1679502886893,
+    brightness: 100,
   },
   {
-    name: "Station 2",
-    data: [
-      {
-        timestamp: 1,
-        brightness: 75,
-      },
-      {
-        timestamp: 2,
-        brightness: 50,
-      },
-      {
-        timestamp: 5,
-        brightness: 100,
-      },
-    ],
+    timestamp: 1679502901566,
+    brightness: 0,
   },
   {
-    name: "Station 3",
-    data: [
-      {
-        timestamp: 1,
-        brightness: 0,
-      },
-      {
-        timestamp: 2,
-        brightness: 50,
-      },
-      {
-        timestamp: 7,
-        brightness: 25,
-      },
-    ],
+    timestamp: 1679502936610,
+    brightness: 25,
+  },
+  {
+    timestamp: 1679502955022,
+    brightness: 50,
+  },
+  {
+    timestamp: 1679503095266,
+    brightness: 100,
+  },
+  {
+    timestamp: 1679503095276,
+    brightness: 75,
+  },
+  {
+    timestamp: 1679503095286,
+    brightness: 25,
+  },
+  {
+    timestamp: 1679503095296,
+    brightness: 50,
   },
 ];
-
-const getRandomColor = () => {
-  const letters = "0123456789ABCDEF";
-  let color = "#";
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-};
 
 const Home = () => {
   const [brightness, setBrightness] = useState<number>(0);
@@ -85,6 +58,11 @@ const Home = () => {
   const removeOverride = async () => {
     await axios.post("http://localhost:8000/off");
   };
+
+  const data = fetchedData.map((d) => ({
+    timestamp: new Date(d.timestamp).toLocaleString(),
+    brightness: d.brightness,
+  }));
 
   return (
     <>
@@ -137,12 +115,11 @@ const Home = () => {
                 bottom: 5,
               }}
             >
-              <XAxis dataKey="timestamp" type="number" />
+              <XAxis dataKey="timestamp" />
               <YAxis dataKey="brightness" />
+              <Tooltip />
               <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
-              {data.map((s) => (
-            <Line type="monotone" dataKey="brightness" data={s.data} name={s.name} key={s.name} stroke={getRandomColor()} />
-          ))}
+              <Line type="stepAfter" dataKey="brightness" data={data} />
             </LineChart>
           </ResponsiveContainer>
         </Box>
