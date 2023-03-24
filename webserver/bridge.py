@@ -9,7 +9,7 @@ from multiprocessing import Process, Queue
 from queue import Empty
 from database import get_database
 
-from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Timeseries
+from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Station, Timeseries
 
 
 def create_cereal() -> serial.Serial | MockCereal:
@@ -30,10 +30,20 @@ def read_from_cereal():
         if line.decode('utf-8')[0] != '{':
             continue
         line = line.decode('utf-8').strip()
-        message = pydantic.parse_raw_as(ESPMessage, line) 
+        message = pydantic.parse_raw_as(ESPMessage, line)
+        current_time = datetime.now()
+
+        station = db.stations.find_one({"node_id": message.id})
+        if not station:
+            name = f"Station {message.id}"
+            station = Station(node_id=message.id, name=name, last_read=current_time, coord_x=message.x, coord_y=message.y)
+            db.stations.insert_one(station.dict())
+        else:
+            db.stations.update_one({"node_id": message.id}, {"$set": {"last_read": current_time}})
+        
         match message:
             case ChangeBrightnessMessage(id=node_id, brightness=brightness, overrided=overrided):
-                timeseries = Timeseries(node_id=node_id, brightness=brightness, override=overrided, timestamp=datetime.now())
+                timeseries = Timeseries(node_id=node_id, brightness=brightness, override=overrided, timestamp=current_time)
                 db.timeseries.insert_one(timeseries.dict())
 
 
@@ -62,7 +72,7 @@ class MockCereal:
 
     def readline(self) -> bytes:
         time.sleep(10)
-        message = KeepAliveMessage(id=214, x=5, y=8)
+        message = KeepAliveMessage(id=656076313, x=1, y=0)
         return message.json().encode()
 
     def write(self, data: str):

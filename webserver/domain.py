@@ -59,9 +59,9 @@ class OffRequest(BaseModel):
 
 # Database models
 class Station(BaseModel):
-    node_id: str
+    node_id: int
     name: str
-    last_read: int
+    last_read: datetime
     coord_x: int
     coord_y: int
 
