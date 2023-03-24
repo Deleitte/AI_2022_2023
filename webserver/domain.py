@@ -3,11 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Literal
 from pydantic import BaseModel, Field
-import enum
 
-class RType(enum.Enum):
-    BRIGHTNESS = 0
-    KEEP_ALIVE = 1
 
 # Messages sent to the ESPs
 class Command(BaseModel):
@@ -71,8 +67,7 @@ class Station(BaseModel):
 
 
 class Timeseries(BaseModel):
-    id: int
+    node_id: int
     override: bool
     timestamp: datetime
-    #type: RType
     brightness: int

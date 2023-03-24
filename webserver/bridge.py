@@ -2,9 +2,9 @@ from __future__ import annotations
 from datetime import datetime
 
 import os
-from typing_extensions import override
 import serial
 import pydantic
+import time
 from multiprocessing import Process, Queue
 from queue import Empty
 from database import get_database
@@ -16,7 +16,7 @@ def create_cereal() -> serial.Serial | MockCereal:
     if os.environ.get("STARGAZER_DEBUG"):
         return MockCereal("/path", 115200)
     else:
-        return serial.Serial('/dev/ttyUSB0', 115200)
+        return serial.Serial(os.environ["STARGAZER_CEREAL"], 115200)
 
 
 def read_from_cereal():
@@ -33,7 +33,7 @@ def read_from_cereal():
         message = pydantic.parse_raw_as(ESPMessage, line) 
         match message:
             case ChangeBrightnessMessage(id=node_id, brightness=brightness, overrided=overrided):
-                timeseries = Timeseries(id=node_id, brightness=brightness, override=overrided, timestamp=datetime.now())
+                timeseries = Timeseries(node_id=node_id, brightness=brightness, override=overrided, timestamp=datetime.now())
                 db.timeseries.insert_one(timeseries.dict())
 
 
@@ -61,6 +61,7 @@ class MockCereal:
         self.baudrate = baudrate
 
     def readline(self) -> bytes:
+        time.sleep(10)
         message = KeepAliveMessage(id=214, x=5, y=8)
         return message.json().encode()
 
