@@ -1,6 +1,8 @@
 import { h, Fragment } from "preact";
 import axios from "axios";
-import { Button, Paper, Slider, Stack, Typography } from "@mui/material";
+import  QrReader from "react-web-qr-reader";
+import { Button, Paper, Slider, Stack, Typography, Fab, Dialog } from "@mui/material";
+import { QrCode } from "@mui/icons-material";
 import { useState } from "preact/hooks";
 import {
   CartesianGrid,
@@ -50,7 +52,21 @@ const fetchedData = [
 
 const Home = () => {
   const [brightness, setBrightness] = useState<number>(0);
-  const id = "0";
+
+  const [open, setOpen] = useState(false);
+  const [id, setId] = useState("0");
+
+  const handleScan = (scan) => {
+    if (scan) {
+      setId(scan.data);
+      setOpen(false);
+    }
+  };
+
+  const handleError = (error) => {
+    console.log(error);
+  };
+
 
   const override = async () => {
     await axios.post("http://localhost:8000/on", { brightness, id });
@@ -70,7 +86,7 @@ const Home = () => {
       <Paper elevation={3}>
         <Stack spacing={4} sx={{ mb: 1 }} padding={6} textAlign="center">
           <Typography variant="h4">
-            Brightness Override: {brightness}%
+            Brightness Override: {brightness}% (ID={id})
           </Typography>
           <Stack spacing={2} direction="row" alignItems="center">
             <Slider
@@ -98,6 +114,23 @@ const Home = () => {
           </Button>
         </Stack>
       </Paper>
+
+      <Fab size="large" color="secondary" onClick={() => setOpen(true)}>
+        <QrCode />
+      </Fab>
+
+      <Dialog fullWidth={true} open={open} onClose={() => setOpen(false)}>
+        <Paper elevation={3}>
+        <Typography variant="h4" textAlign="center" marginY={2}>
+            Station Reader
+        </Typography>
+        <QrReader
+          delay={ 500 }
+          onError={handleError}
+          onScan={handleScan}
+        />
+        </Paper>
+      </Dialog>
 
       <Paper elevation={3}>
         <Box textAlign="center">
