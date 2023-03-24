@@ -1,15 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import pymongo
 
 from bridge import *
 from domain import *
 
 app = FastAPI()
-origins = [
-        "*"
-]
 
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

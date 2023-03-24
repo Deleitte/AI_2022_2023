@@ -13,11 +13,11 @@ class RType(enum.Enum):
 class Command(BaseModel):
     type: int = 0
     action: int
+    id: int
 
 
 class OnCommand(Command):
-    action: int = 1 
-    id: int
+    action: int = 1
     brightness: int 
 
 
