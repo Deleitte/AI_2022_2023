@@ -58,6 +58,9 @@ class OnRequest(BaseModel):
 class OffRequest(BaseModel):
     id: int
 
+class ChangeNameRequest(BaseModel):
+    node_id: int
+    name: str
 
 # Database models
 class Station(BaseModel):

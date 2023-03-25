@@ -8,6 +8,7 @@ import time
 from multiprocessing import Process, Queue
 from queue import Empty
 from database import get_database
+from random import random
 
 from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Station, Timeseries
 
@@ -71,7 +72,11 @@ class MockCereal:
 
     def readline(self) -> bytes:
         time.sleep(10)
-        message = KeepAliveMessage(id=656076313, x=1, y=0)
+        message = None
+        if random() > 0.5:
+            message = ChangeBrightnessMessage(id=656076313, x=1, y=0, brightness=(int(random() * 4) * 25), overrided=(random() > 0.68))
+        else:
+            message = KeepAliveMessage(id=656076313, x=1, y=0)
         return message.json().encode()
 
     def write(self, data: str):

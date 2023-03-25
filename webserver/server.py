@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import parse_obj_as
-from typing import List
 
 from bridge import *
 from domain import *
@@ -31,6 +30,7 @@ read_channel, write_channel, queue = get_bridge()
 
 read_channel.start()
 write_channel.start()
+db = get_database()
 
 
 @app.post("/off")
@@ -52,13 +52,22 @@ async def on(body: OnRequest) -> CommandResponse:
 
 @app.get("/stations")
 async def stations() -> StationsResponse:
-    db = get_database()
     stations = list(db.stations.find())
-    return StationsResponse(stations=parse_obj_as(List[Station], stations))
+    return StationsResponse(stations=parse_obj_as(list[Station], stations))
 
 
 @app.get("/stations/{node_id}")
 async def station(node_id: int) -> Station:
-    db = get_database()
     station = db.stations.find_one({ "node_id": node_id })
     return Station.parse_obj(station) 
+
+
+@app.put("/stations/name")
+async def change_station_name(body: ChangeNameRequest) -> CommandResponse:
+    result = db.stations.update_one({"node_id": body.node_id}, {"$set": {"name": body.name}})
+    return CommandResponse(success=result.modified_count == 1)
+
+
+@app.get("/stations/{node_id}/telemetry")
+async def station_telemetry(node_id: int) -> list[Timeseries]:
+    return parse_obj_as(list[Timeseries], list(db.timeseries.find({"node_id": node_id})))
