@@ -49,8 +49,16 @@ async def on(body: OnRequest) -> CommandResponse:
     queue.put(command.json())
     return CommandResponse(success=True)
 
+
 @app.get("/stations")
 async def stations() -> StationsResponse:
     db = get_database()
     stations = list(db.stations.find())
     return StationsResponse(stations=parse_obj_as(List[Station], stations))
+
+
+@app.get("/stations/{node_id}")
+async def station(node_id: int) -> Station:
+    db = get_database()
+    station = db.stations.find_one({ "node_id": node_id })
+    return Station.parse_obj(station) 
