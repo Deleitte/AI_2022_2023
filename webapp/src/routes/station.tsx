@@ -98,6 +98,9 @@ const StationPage = ({ stationId }: Props) => {
           <Typography variant="h4">
             Station is {station.locked ? "locked" : "not locked"}
           </Typography>
+          <Typography variant="h4">
+            Current brightness: {station.brightness}
+          </Typography>
 
           <Paper elevation={3}>
             <Stack spacing={4} sx={{ my: 6 }} padding={6} textAlign="center">
