@@ -36,16 +36,15 @@ def read_from_cereal():
         station = db.stations.find_one({"node_id": message.id})
         if not station:
             name = f"Station {message.id}"
-            station = Station(node_id=message.id, name=name, last_read=current_time, coord_x=message.x, coord_y=message.y)
+            station = Station(node_id=message.id, name=name, last_read=current_time, brightness=0, locked=False, coord_x=message.x, coord_y=message.y)
             db.stations.insert_one(station.dict())
-        else:
-            db.stations.update_one({"node_id": message.id}, {"$set": {"last_read": current_time}})
         
         match message:
             case ChangeBrightnessMessage(id=node_id, brightness=brightness, overrided=overrided):
-                timeseries = Timeseries(node_id=node_id, brightness=brightness, override=overrided, timestamp=current_time)
+                print(f"Setting brightness of {node_id} to {brightness}")
+                timeseries = Timeseries(node_id=node_id, brightness=brightness, locked=overrided, timestamp=current_time)
                 db.timeseries.insert_one(timeseries.dict())
-
+                db.stations.update_one({"node_id": node_id}, {"$set": {"brightness": brightness, "locked": overrided, "last_read": current_time}})
 
 def write_to_cereal(queue: Queue):
     ser = create_cereal() 

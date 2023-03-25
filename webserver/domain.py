@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, List
 from pydantic import BaseModel, Field
 
 
@@ -47,6 +47,8 @@ ESPMessage = Annotated[KeepAliveMessage | ChangeBrightnessMessage, Field(discrim
 class CommandResponse(BaseModel):
     success: bool
 
+class StationsResponse(BaseModel):
+    stations: list
 
 class OnRequest(BaseModel):
     id: int
@@ -62,12 +64,14 @@ class Station(BaseModel):
     node_id: int
     name: str
     last_read: datetime
+    brightness: int
+    locked: bool
     coord_x: int
     coord_y: int
 
 
 class Timeseries(BaseModel):
     node_id: int
-    override: bool
+    locked: bool
     timestamp: datetime
     brightness: int

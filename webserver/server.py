@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import parse_obj_as
+from typing import List
 
 from bridge import *
 from domain import *
@@ -47,3 +49,8 @@ async def on(body: OnRequest) -> CommandResponse:
     queue.put(command.json())
     return CommandResponse(success=True)
 
+@app.get("/stations")
+async def stations() -> StationsResponse:
+    db = get_database()
+    stations = list(db.stations.find())
+    return StationsResponse(stations=parse_obj_as(List[Station], stations))
