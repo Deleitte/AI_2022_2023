@@ -145,7 +145,7 @@ void receivedCallback(uint32_t from, String &msg) {
 void controlLigths() {
   if (info.locked) {
     adaptBrightness(info.brightness);
-  } else if (readingAverage < MIN_AMB_BRIGHTNESS) {
+  } else if (readingAverage < MIN_AMB_BRIGHTNESS - 100) {
     if (info.detectedMotion) {
       adaptBrightness(100);
     } else {
@@ -162,9 +162,10 @@ void controlLigths() {
         adaptBrightness(0);
       }
     }
-  } else {
+  } else if (readingAverage > MIN_AMB_BRIGHTNESS + 100) {
     adaptBrightness(0);
   }
+
   digitalWrite(LED_PIN_1, LOW);
   digitalWrite(LED_PIN_2, LOW);
   digitalWrite(LED_PIN_3, LOW);
