@@ -35,7 +35,7 @@ const StationPage = ({ stationId }: Props) => {
   const [newName, setNewName] = useState("");
 
   const changeName = async () => {
-    await axios.put("http://localhost:8000/stations/name", {
+    await axios.put("/api/stations/name", {
       node_id: stationId,
       name: newName,
     });
