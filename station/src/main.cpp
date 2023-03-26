@@ -32,11 +32,11 @@ NodeInfo info;
 painlessMesh  mesh;
 Scheduler     scheduler;
 
-int lastReading = 4095;
 int currentState   = LOW;
 int previousState  = LOW;
 bool neighbours[8] = {false};
 int readingAverage = 4095;
+int lastReadingAverage = 4095;
 
 void sendChangeBrightnessMessage();
 void sendSwitchMessage();
@@ -65,6 +65,7 @@ Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, []() {
 });
 
 Task taskReadLightSensor(TASK_SECOND * 1, TASK_FOREVER, []() {
+  lastReadingAverage = readingAverage;
   readingAverage = analogRead(LIGHT_SENSOR_PIN)*0.2 + readingAverage*0.8;
 });
 
@@ -146,8 +147,12 @@ void controlLigths() {
   if (info.locked) {
     adaptBrightness(info.brightness);
   } else if (readingAverage < MIN_AMB_BRIGHTNESS - 100) {
+    if (abs(readingAverage - lastReadingAverage) > 100) {
+      lastReadingAverage = readingAverage;
+    }
+    int brightness = map(max(lastReadingAverage,1000), 1000, MIN_AMB_BRIGHTNESS - 100, 100, 50);
     if (info.detectedMotion) {
-      adaptBrightness(100);
+      adaptBrightness(brightness);
     } else {
       bool hasNeighbourActive = false;
       for (int i = 0; i < 8; i++) {
@@ -157,7 +162,7 @@ void controlLigths() {
         }
       }
       if (hasNeighbourActive) {
-        adaptBrightness(25);
+        adaptBrightness(brightness/2);
       } else {
         adaptBrightness(0);
       }
@@ -166,21 +171,32 @@ void controlLigths() {
     adaptBrightness(0);
   }
 
-  digitalWrite(LED_PIN_1, LOW);
-  digitalWrite(LED_PIN_2, LOW);
-  digitalWrite(LED_PIN_3, LOW);
-  digitalWrite(LED_PIN_4, LOW);
-  if (info.brightness >= 25) {
-    digitalWrite(LED_PIN_1, HIGH);
+  
+  if (info.brightness < 25) {
+    analogWrite(LED_PIN_1, map(info.brightness, 0, 25, 0, 255));
+  } else if (info.brightness >= 25) {
+    analogWrite(LED_PIN_1, 255);
+  } else {
+    analogWrite(LED_PIN_1, 0);
   }
-  if (info.brightness >= 50) {
-    digitalWrite(LED_PIN_2, HIGH);
+  if (info.brightness >= 25 && info.brightness < 50) {
+    analogWrite(LED_PIN_2, map(info.brightness, 25, 50, 0, 255));
+  } else if (info.brightness >= 50) {
+    analogWrite(LED_PIN_2, 255);
+  } else {
+    analogWrite(LED_PIN_2, 0);
+  }
+  if (info.brightness >= 50 && info.brightness < 75) {
+    analogWrite(LED_PIN_3, map(info.brightness, 50, 75, 0, 255));
+  } else if (info.brightness >= 75){
+    analogWrite(LED_PIN_3, 255);
+  } else {
+    analogWrite(LED_PIN_3, 0);
   }
   if (info.brightness >= 75) {
-    digitalWrite(LED_PIN_3, HIGH);
-  }
-  if (info.brightness == 100) {
-    digitalWrite(LED_PIN_4, HIGH);
+    analogWrite(LED_PIN_4, map(info.brightness, 75, 100, 0, 255));
+  } else {
+    analogWrite(LED_PIN_4, 0);
   }
 }
 
@@ -188,10 +204,11 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(PIR_PIN, INPUT);
-  pinMode(LED_PIN_1, OUTPUT);
-  pinMode(LED_PIN_2, OUTPUT);
-  pinMode(LED_PIN_3, OUTPUT);
-  pinMode(LED_PIN_4, OUTPUT);
+  ledcSetup(0, 5000, 8);
+  ledcAttachPin(LED_PIN_1, 0);
+  ledcAttachPin(LED_PIN_2, 0);
+  ledcAttachPin(LED_PIN_3, 0);
+  ledcAttachPin(LED_PIN_4, 0);
   pinMode(LIGHT_SENSOR_PIN, INPUT);
 
   mesh.setDebugMsgTypes( ERROR | STARTUP );
@@ -232,6 +249,9 @@ void loop() {
   currentState = digitalRead(PIR_PIN);
   if (previousState == LOW && currentState == HIGH) {
     sendSwitchMessage();
+    if (!info.detectedMotion) {
+      lastReadingAverage = readingAverage;
+    }
     info.detectedMotion = true;
     taskTurnOff.restartDelayed(TURN_OFF_TIME * TASK_SECOND);
   }
