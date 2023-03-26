@@ -43,16 +43,16 @@ const Home = () => {
   };
 
   const override = async () => {
-    await axios.post("http://localhost:8000/on", { brightness, id: 0 });
+    await axios.post("/api/on", { brightness, id: 0 });
   };
 
   const removeOverride = async () => {
-    await axios.post("http://localhost:8000/off", { id: 0 });
+    await axios.post("/api/off", { id: 0 });
   };
 
   useEffect(() => {
     const fetchStations = async () => {
-      const { data } = await axios.get("http://localhost:8000/stations");
+      const { data } = await axios.get("/api/stations");
       setStations(data.stations);
     };
 

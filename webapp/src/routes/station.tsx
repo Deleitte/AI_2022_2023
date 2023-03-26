@@ -42,24 +42,24 @@ const StationPage = ({ stationId }: Props) => {
   };
 
   const override = async () => {
-    await axios.post("http://localhost:8000/on", { brightness, id: stationId });
+    await axios.post("/api/on", { brightness, id: stationId });
   };
 
   const removeOverride = async () => {
-    await axios.post("http://localhost:8000/off", { id: stationId });
+    await axios.post("/api/off", { id: stationId });
   };
 
   useEffect(() => {
     const fetchStation = async () => {
       const { data } = await axios.get(
-        `http://localhost:8000/stations/${stationId}`
+        `/api/stations/${stationId}`
       );
 
       setStation(data);
       if (!editing) setNewName(data.name);
 
       const { data: telemetry } = await axios.get(
-        `http://localhost:8000/stations/${stationId}/telemetry`
+        `/api/stations/${stationId}/telemetry`
       );
 
       setTelemetry(telemetry);
