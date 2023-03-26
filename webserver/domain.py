@@ -37,7 +37,7 @@ class KeepAliveMessage(BaseESPMessage):
 class ChangeBrightnessMessage(BaseESPMessage):
     action: Literal[1] = 1
     brightness: int
-    overrided: bool
+    locked: bool
 
 
 ESPMessage = Annotated[KeepAliveMessage | ChangeBrightnessMessage, Field(discriminator='action')]

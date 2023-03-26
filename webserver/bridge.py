@@ -26,7 +26,6 @@ def read_from_cereal():
 
     while True:
         line = ser.readline()
-        print(line)
         # TODO: Remove this
         if line.decode('utf-8')[0] != '{':
             continue
@@ -41,11 +40,10 @@ def read_from_cereal():
             db.stations.insert_one(station.dict())
         
         match message:
-            case ChangeBrightnessMessage(id=node_id, brightness=brightness, overrided=overrided):
-                print(f"Setting brightness of {node_id} to {brightness}")
-                timeseries = Timeseries(node_id=node_id, brightness=brightness, locked=overrided, timestamp=current_time)
+            case ChangeBrightnessMessage(id=node_id, brightness=brightness, locked=locked):
+                timeseries = Timeseries(node_id=node_id, brightness=brightness, locked=locked, timestamp=current_time)
                 db.timeseries.insert_one(timeseries.dict())
-                db.stations.update_one({"node_id": node_id}, {"$set": {"brightness": brightness, "locked": overrided, "last_read": current_time}})
+                db.stations.update_one({"node_id": node_id}, {"$set": {"brightness": brightness, "locked": locked, "last_read": current_time}})
 
 def write_to_cereal(queue: Queue):
     ser = create_cereal() 
@@ -74,7 +72,7 @@ class MockCereal:
         time.sleep(10)
         message = None
         if random() > 0.5:
-            message = ChangeBrightnessMessage(id=656076313, x=1, y=0, brightness=(int(random() * 4) * 25), overrided=(random() > 0.68))
+            message = ChangeBrightnessMessage(id=656076313, x=1, y=0, brightness=(int(random() * 4) * 25), locked=(random() > 0.68))
         else:
             message = KeepAliveMessage(id=656076313, x=1, y=0)
         return message.json().encode()

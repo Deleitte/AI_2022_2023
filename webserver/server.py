@@ -45,7 +45,6 @@ async def off(body: OffRequest) -> CommandResponse:
 async def on(body: OnRequest) -> CommandResponse:
     global queue
     command = OnCommand(id=body.id, brightness=body.brightness)
-    print(command.json())
     queue.put(command.json())
     return CommandResponse(success=True)
 

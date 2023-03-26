@@ -85,7 +85,7 @@ void sendChangeBrightnessMessage() {
   changeBrightMessage["x"] = info.x;
   changeBrightMessage["y"] = info.y;
   changeBrightMessage["brightness"] = info.brightness;
-  changeBrightMessage["overrided"] = info.locked;
+  changeBrightMessage["locked"] = info.locked;
 
   String jsonString = JSON.stringify(changeBrightMessage);
   mesh.sendBroadcast(jsonString, true);
