@@ -19,19 +19,8 @@ import Home from "../routes/home";
 import Profile from "../routes/station";
 
 const App = () => {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? "dark" : "light",
-        },
-      }),
-    [prefersDarkMode]
-  );
 
   return (
-    <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
         <CssBaseline />
         <AppBar position="absolute">
@@ -42,7 +31,7 @@ const App = () => {
 
             <Match path="/">
               {({ matches }) =>
-                !matches && <Button onClick={() => route("/")}>Go Back</Button>
+                !matches && <Button color="secondary" variant="contained" onClick={() => route("/")}>Go Back</Button>
               }
             </Match>
           </Toolbar>
@@ -69,7 +58,6 @@ const App = () => {
           </Container>
         </Box>
       </Box>
-    </ThemeProvider>
   );
 };
 

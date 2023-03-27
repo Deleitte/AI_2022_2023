@@ -16,9 +16,9 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import { h, Fragment } from "preact";
-import { route } from "preact-router";
 import { useEffect, useState } from "preact/hooks";
 import Telemetry from "src/models/telemetry";
+import ReactApexChart from "react-apexcharts";
 
 import Station from "../models/station";
 
@@ -134,6 +134,47 @@ const StationPage = ({ stationId }: Props) => {
             </Stack>
           </Paper>
 
+          {telemetry && (
+          <Paper elevation={3} style={{ marginBottom: 20, padding: 4 }}>
+          <ReactApexChart options={{
+              chart: {
+                type: 'area',
+                height: 350,
+                zoom: {
+                  type: 'x',
+                  enabled: true,
+                  autoScaleYaxis: true
+                },
+              },
+              yaxis: {
+                title: {
+                  text: 'brightness(%)'
+                },
+                tickAmount: 10,
+                max: 100,
+              },
+              xaxis: {
+                categories: telemetry.map((data) => new Date(data.timestamp).getTime()),
+                type: 'datetime',
+              },
+              stroke: {
+                curve: 'stepline',
+              },
+              dataLabels: {
+                enabled: false
+              },
+              title: {
+                text: 'Brightness intensity history',
+                align: 'left'
+              }
+            }} series= {[{
+              name: 'Brightness',
+              data: telemetry.map((data) => data.brightness)
+            }] }
+            type="line" height={350} />
+            </Paper>
+            )}
+          
           {telemetry && (
             <TableContainer component={Paper}>
               <Table aria-label="simple table">
