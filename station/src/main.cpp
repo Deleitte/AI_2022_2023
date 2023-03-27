@@ -65,8 +65,10 @@ Task taskSendKeepAliveMessage(TASK_MINUTE * 5, TASK_FOREVER, []() {
 });
 
 Task taskReadLightSensor(TASK_SECOND * 1, TASK_FOREVER, []() {
-  lastReadingAverage = readingAverage;
   readingAverage = analogRead(LIGHT_SENSOR_PIN)*0.2 + readingAverage*0.8;
+  if (abs(readingAverage - lastReadingAverage) > 100) {
+    lastReadingAverage = readingAverage;
+  }
 });
 
 void sendLockMessage(uint32_t id, int action, int brightness=0) {
@@ -144,33 +146,27 @@ void receivedCallback(uint32_t from, String &msg) {
 }
 
 void controlLigths() {
+  bool hasNeighbourActive = false;
+  for (int i = 0; i < 8; i++) {
+    if (neighbours[i]) {
+      hasNeighbourActive = true;
+      break;
+    }
+  }
   if (info.locked) {
     adaptBrightness(info.brightness);
-  } else if (readingAverage < MIN_AMB_BRIGHTNESS - 100) {
-    if (abs(readingAverage - lastReadingAverage) > 100) {
-      lastReadingAverage = readingAverage;
-    }
+  } else if (lastReadingAverage < MIN_AMB_BRIGHTNESS - 100) {
     int brightness = map(max(lastReadingAverage,1000), 1000, MIN_AMB_BRIGHTNESS - 100, 100, 50);
     if (info.detectedMotion) {
       adaptBrightness(brightness);
+    } else if (hasNeighbourActive) {
+      adaptBrightness(brightness/2);
     } else {
-      bool hasNeighbourActive = false;
-      for (int i = 0; i < 8; i++) {
-        if (neighbours[i]) {
-          hasNeighbourActive = true;
-          break;
-        }
-      }
-      if (hasNeighbourActive) {
-        adaptBrightness(brightness/2);
-      } else {
-        adaptBrightness(0);
-      }
+      adaptBrightness(0);
     }
-  } else if (readingAverage > MIN_AMB_BRIGHTNESS + 100) {
+  } else if (lastReadingAverage > MIN_AMB_BRIGHTNESS + 100) {
     adaptBrightness(0);
-  }
-
+  }      
   
   if (info.brightness < 25) {
     analogWrite(LED_PIN_1, map(info.brightness, 0, 25, 0, 255));
