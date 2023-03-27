@@ -2,16 +2,17 @@
 #include "Arduino_JSON.h"
 #include "WiFi.h"
 
-#define MIN_AMB_BRIGHTNESS 3000
-#define STATION_POS_X 0
-#define STATION_POS_Y 0
+// CONFIG
+#define SWITCH_TRESHOLD 3000        // Treshold for turning on and off the lights
+#define STATION_POS_X 0             // X coordinate of the station
+#define STATION_POS_Y 0             // Y coordinate of the station
+#define TURN_OFF_TIME 20            // Time in seconds to turn off the lights after the last motion detected
+#define SSID       "starGazer"      // Name of the WiFi mesh network
+#define PASSWORD   "starGazer"      // Password of the WiFi mesh network
+#define PORT       6666             // Port of the WiFi mesh network
+// END CONFIG
 
-#define TURN_OFF_TIME 20
-
-#define   SSID       "starGazer"
-#define   PASSWORD   "12345678910"
-#define   PORT       6969
-
+#define SWITCH_TOLERANCE 100
 #define LIGHT_SENSOR_PIN  34
 #define PIR_PIN 35
 #define LED_PIN_1 27
@@ -46,7 +47,7 @@ Task taskTurnOff(TASK_SECOND * TURN_OFF_TIME, TASK_ONCE, []() {
   info.detectedMotion = false;
 });
 
-Task taskCleanNeighbours(TASK_SECOND * 10, TASK_ONCE, []() {
+Task taskCleanNeighbours(TASK_SECOND * TURN_OFF_TIME, TASK_ONCE, []() {
   for (int i = 0; i < 8; i++) {
     neighbours[i] = false;
   }
@@ -153,10 +154,11 @@ void controlLigths() {
       break;
     }
   }
+  
   if (info.locked) {
     adaptBrightness(info.brightness);
-  } else if (lastReadingAverage < MIN_AMB_BRIGHTNESS - 100) {
-    int brightness = map(max(lastReadingAverage,1000), 1000, MIN_AMB_BRIGHTNESS - 100, 100, 50);
+  } else if (lastReadingAverage < SWITCH_TRESHOLD - SWITCH_TOLERANCE) {
+    int brightness = map(max(lastReadingAverage,1000), 1000, SWITCH_TRESHOLD - SWITCH_TOLERANCE, 100, 50);
     if (info.detectedMotion) {
       adaptBrightness(brightness);
     } else if (hasNeighbourActive) {
@@ -164,9 +166,9 @@ void controlLigths() {
     } else {
       adaptBrightness(0);
     }
-  } else if (lastReadingAverage > MIN_AMB_BRIGHTNESS + 100) {
+  } else if (lastReadingAverage > SWITCH_TRESHOLD + SWITCH_TOLERANCE || (!info.detectedMotion && !hasNeighbourActive)) {
     adaptBrightness(0);
-  }      
+  }
   
   if (info.brightness < 25) {
     analogWrite(LED_PIN_1, map(info.brightness, 0, 25, 0, 255));

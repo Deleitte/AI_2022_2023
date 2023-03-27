@@ -9,7 +9,7 @@ if not os.environ.get("STARGAZER_DEBUG"):
     devices = filter(lambda name: 'ttyUSB' in name, os.listdir('/dev'))
     for device in devices:
         print("Connecting to device", device)
-        os.environ["STARGAZER_CEREAL"] = f"/dev/{device}"
+        os.environ["STARGAZER_SERIAL"] = f"/dev/{device}"
         break
     else:
         print("No device has been found, debug mode has been activated")

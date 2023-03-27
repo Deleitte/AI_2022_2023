@@ -13,15 +13,15 @@ from random import random
 from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Station, Telemetry
 
 
-def create_cereal() -> serial.Serial | MockCereal:
+def create_serial() -> serial.Serial | MockSerial:
     if os.environ.get("STARGAZER_DEBUG"):
-        return MockCereal("/path", 115200)
+        return MockSerial("/path", 115200)
     else:
-        return serial.Serial(os.environ["STARGAZER_CEREAL"], 115200)
+        return serial.Serial(os.environ["STARGAZER_SERIAL"], 115200)
 
 
-def read_from_cereal():
-    ser = create_cereal()
+def read_from_serial():
+    ser = create_serial()
     db = get_database()
     while True:
         line = ser.readline()
@@ -44,8 +44,8 @@ def read_from_cereal():
                 db.telemetry.insert_one(telemetry.dict())
                 db.stations.update_one({"node_id": node_id}, {"$set": {"brightness": brightness, "locked": locked, "last_read": current_time}})
 
-def write_to_cereal(queue: Queue):
-    ser = create_cereal() 
+def write_to_serial(queue: Queue):
+    ser = create_serial() 
     while True:
         try:
             message = queue.get(timeout=1000).encode('utf-8')
@@ -56,12 +56,12 @@ def write_to_cereal(queue: Queue):
 
 def get_bridge() -> tuple[Process, Process, Queue]:
     queue = Queue()
-    write_process = Process(target=write_to_cereal, args=(queue,))
-    read_process = Process(target=read_from_cereal)
+    write_process = Process(target=write_to_serial, args=(queue,))
+    read_process = Process(target=read_from_serial)
     return (read_process, write_process, queue)
 
 
-class MockCereal:
+class MockSerial:
     def __init__(self, path: str, baudrate: int):
         self.path = path
         self.in_waiting = True
