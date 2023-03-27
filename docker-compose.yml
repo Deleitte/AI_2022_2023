@@ -20,6 +20,15 @@ services:
       - "STARGAZER_MONGO_URL=mongodb://star:drive@db:27017"
     ports:
       - "8000:8000"
+  frontend:
+    depends_on:
+      - backend
+    build: ./webapp
+    networks:
+      - default
+      - stargazer
+    ports:
+      - "80:80"
 
 networks:
   stargazer:
