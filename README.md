@@ -64,4 +64,4 @@ To run the web server, database and frontend you should run inside the root fold
 ```
 docker compose up -d -f docker-compose-esp.yml
 ```
-You should now be able to access the web dashboard at ```http://{host-ip}```
+You should now be able to access the web dashboard at ```http://localhost```
