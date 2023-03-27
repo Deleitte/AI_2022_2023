@@ -73,7 +73,7 @@ class Station(BaseModel):
     coord_y: int
 
 
-class Timeseries(BaseModel):
+class Telemetry(BaseModel):
     node_id: int
     locked: bool
     timestamp: datetime

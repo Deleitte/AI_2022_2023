@@ -28,9 +28,12 @@ app.add_middleware(
 
 read_channel, write_channel, queue = get_bridge()
 
+db = get_database()
+if not "telemetry" in db.list_collection_names():
+    db.create_collection("telemetry", timeseries={"timeField": "timestamp", "metaField": "node_id"})
+
 read_channel.start()
 write_channel.start()
-db = get_database()
 
 
 @app.post("/off")
@@ -68,5 +71,5 @@ async def change_station_name(body: ChangeNameRequest) -> CommandResponse:
 
 
 @app.get("/stations/{node_id}/telemetry")
-async def station_telemetry(node_id: int) -> list[Timeseries]:
-    return parse_obj_as(list[Timeseries], list(db.timeseries.find({"node_id": node_id})))
+async def station_telemetry(node_id: int) -> list[Telemetry]:
+    return parse_obj_as(list[Telemetry], list(db.telemetry.find({"node_id": node_id})))

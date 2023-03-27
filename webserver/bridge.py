@@ -10,7 +10,7 @@ from queue import Empty
 from database import get_database
 from random import random
 
-from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Station, Timeseries
+from domain import ChangeBrightnessMessage, ESPMessage, KeepAliveMessage, Station, Telemetry
 
 
 def create_cereal() -> serial.Serial | MockCereal:
@@ -23,7 +23,6 @@ def create_cereal() -> serial.Serial | MockCereal:
 def read_from_cereal():
     ser = create_cereal()
     db = get_database()
-
     while True:
         line = ser.readline()
         # TODO: Remove this
@@ -41,8 +40,8 @@ def read_from_cereal():
         
         match message:
             case ChangeBrightnessMessage(id=node_id, brightness=brightness, locked=locked):
-                timeseries = Timeseries(node_id=node_id, brightness=brightness, locked=locked, timestamp=current_time)
-                db.timeseries.insert_one(timeseries.dict())
+                telemetry = Telemetry(node_id=node_id, brightness=brightness, locked=locked, timestamp=current_time)
+                db.telemetry.insert_one(telemetry.dict())
                 db.stations.update_one({"node_id": node_id}, {"$set": {"brightness": brightness, "locked": locked, "last_read": current_time}})
 
 def write_to_cereal(queue: Queue):
