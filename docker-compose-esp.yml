@@ -1,0 +1,39 @@
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=star
+      - MONGO_INITDB_ROOT_PASSWORD=drive
+    networks:
+      - default
+      - stargazer
+  backend:
+    depends_on:
+      - db
+    build: ./webserver
+    networks:
+      - default
+      - stargazer
+    environment:
+      - "STARGAZER_MONGO_URL=mongodb://star:drive@db:27017"
+    ports:
+      - "8000:8000"
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
+  frontend:
+    depends_on:
+      - backend
+    build: ./webapp
+    networks:
+      - default
+      - stargazer
+    ports:
+      - "80:80"
+
+networks:
+  stargazer:
+    name: "stargazer-network"
+    driver: bridge
+
