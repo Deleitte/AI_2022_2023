@@ -65,6 +65,7 @@ const StationPage = ({ stationId }: Props) => {
       setTelemetry(telemetry);
     };
 
+    fetchStation().catch(console.error);
     const interval = setInterval(fetchStation, 2000);
     return () => clearInterval(interval);
   }, [stationId, editing]);
@@ -111,7 +112,7 @@ const StationPage = ({ stationId }: Props) => {
                 <Slider
                   aria-label="Override brightness"
                   defaultValue={0}
-                  step={25}
+                  step={1}
                   marks
                   min={0}
                   max={100}

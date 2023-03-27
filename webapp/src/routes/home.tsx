@@ -57,6 +57,8 @@ const Home = () => {
     };
 
     fetchStations().catch(console.error);
+    const interval = setInterval(fetchStations, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -133,7 +135,7 @@ const Home = () => {
             <Slider
               aria-label="Override brightness"
               defaultValue={0}
-              step={25}
+              step={1}
               marks
               min={0}
               max={100}
