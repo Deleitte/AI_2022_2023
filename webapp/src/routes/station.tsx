@@ -1,6 +1,7 @@
 import { Edit } from "@mui/icons-material";
 import {
   Button,
+  Container,
   IconButton,
   Paper,
   Slider,
@@ -33,6 +34,7 @@ const StationPage = ({ stationId }: Props) => {
   const [telemetry, setTelemetry] = useState<Telemetry[]>();
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
+  const [minutes, setMinutes] = useState(30);
 
   const changeName = async () => {
     await axios.put("/api/stations/name", {
@@ -134,7 +136,20 @@ const StationPage = ({ stationId }: Props) => {
               </Button>
             </Stack>
           </Paper>
-
+          <Container align="right">
+            <Button align="right" variant="contained" disabled={minutes == 30} onClick={() => setMinutes(30)}>
+              30 minutes
+            </Button>
+            <Button variant="contained" disabled={minutes == 60} onClick={() => setMinutes(60)}>
+              1 day
+            </Button>
+            <Button variant="contained" disabled={minutes == 1440} onClick={() => setMinutes(1440)}>
+              1 week
+            </Button>
+            <Button variant="contained" disabled={minutes > 1440} onClick={() => setMinutes(new Date().getTime() - 3600000*2/1000/60)}>
+              All
+            </Button>
+          </Container>
           {telemetry && (
           <Paper elevation={3} style={{ marginBottom: 20, padding: 4 }}>
           <ReactApexChart options={{
@@ -155,7 +170,7 @@ const StationPage = ({ stationId }: Props) => {
                 max: 100,
               },
               xaxis: {
-                categories: telemetry.map((data) => new Date(data.timestamp).getTime()),
+                categories: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000*2 > new Date().getTime() - minutes*60*1000).map((data) => new Date(data.timestamp).getTime()+3600000*2),
                 type: 'datetime',
               },
               stroke: {
@@ -170,7 +185,7 @@ const StationPage = ({ stationId }: Props) => {
               }
             }} series= {[{
               name: 'Brightness',
-              data: telemetry.map((data) => data.brightness)
+              data: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000*2 > new Date().getTime() - minutes*60*1000).map((data) => data.brightness)
             }] }
             type="line" height={350} />
             </Paper>
@@ -193,7 +208,7 @@ const StationPage = ({ stationId }: Props) => {
                       sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                     >
                       <TableCell component="th" scope="row">
-                        {new Date(data.timestamp).toLocaleString()}
+                        {new Date(data.timestamp).toLocaleString("pt-PT", {timeZone: "Europe/Madrid"})}
                       </TableCell>
 
                       <TableCell align="right">{data.brightness}</TableCell>
