@@ -31,10 +31,13 @@ interface Props {
 const StationPage = ({ stationId }: Props) => {
   const [brightness, setBrightness] = useState<number>(0);
   const [station, setStation] = useState<Station>();
-  const [telemetry, setTelemetry] = useState<Telemetry[]>();
+  const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
-  const [minutes, setMinutes] = useState(new Date().getTime() - 3600000/1000/60);
+  const [minutes, setMinutes] = useState((new Date().getTime() - 3600000)/1000/60);
+  const [enableLastHalfHour, setEnableLastHalfHour] = useState(false);
+  const [enableLastDay, setEnableLastDay] = useState(false);
+  const [enableLastWeek, setEnableLastWeek] = useState(false);
 
   const changeName = async () => {
     await axios.put("/api/stations/name", {
@@ -65,6 +68,12 @@ const StationPage = ({ stationId }: Props) => {
       );
 
       setTelemetry(telemetry);
+      if (telemetry.length > 0) {
+        const lastReading = new Date(telemetry[telemetry.length - 1].timestamp).getTime() + 3600000;
+        setEnableLastHalfHour(lastReading > new Date().getTime() - 30*60*1000);
+        setEnableLastDay(lastReading > new Date().getTime() - 24*60*60*1000);
+        setEnableLastWeek(lastReading > new Date().getTime() - 7*24*60*60*1000);
+      }
     };
 
     fetchStation().catch(console.error);
@@ -137,16 +146,16 @@ const StationPage = ({ stationId }: Props) => {
             </Stack>
           </Paper>
           <Container align="right">
-            <Button align="right" variant="contained" disabled={minutes == 30} onClick={() => setMinutes(30)}>
+            <Button align="right" variant="contained" disabled={minutes == 30 || !enableLastHalfHour} onClick={() => setMinutes(30)}>
               30 minutes
             </Button>
-            <Button variant="contained" disabled={minutes == 1440} onClick={() => setMinutes(1440)}>
+            <Button variant="contained" disabled={minutes == 1440 || !enableLastDay} onClick={() => setMinutes(1440)}>
               1 day
             </Button>
-            <Button variant="contained" disabled={minutes == 10080} onClick={() => setMinutes(10080)}>
+            <Button variant="contained" disabled={minutes == 10080 || !enableLastWeek} onClick={() => setMinutes(10080)}>
               1 week
             </Button>
-            <Button variant="contained" disabled={minutes > 10080} onClick={() => setMinutes((new Date().getTime() - 3600000)/1000/60)}>
+            <Button variant="contained" disabled={minutes > 10080} onClick={() => setMinutes(new Date().getTime()/1000/60)}>
               All
             </Button>
           </Container>
