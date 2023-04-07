@@ -34,7 +34,7 @@ const StationPage = ({ stationId }: Props) => {
   const [telemetry, setTelemetry] = useState<Telemetry[]>();
   const [editing, setEditing] = useState(false);
   const [newName, setNewName] = useState("");
-  const [minutes, setMinutes] = useState(30);
+  const [minutes, setMinutes] = useState(new Date().getTime() - 3600000/1000/60);
 
   const changeName = async () => {
     await axios.put("/api/stations/name", {
@@ -140,13 +140,13 @@ const StationPage = ({ stationId }: Props) => {
             <Button align="right" variant="contained" disabled={minutes == 30} onClick={() => setMinutes(30)}>
               30 minutes
             </Button>
-            <Button variant="contained" disabled={minutes == 60} onClick={() => setMinutes(60)}>
+            <Button variant="contained" disabled={minutes == 1440} onClick={() => setMinutes(1440)}>
               1 day
             </Button>
-            <Button variant="contained" disabled={minutes == 1440} onClick={() => setMinutes(1440)}>
+            <Button variant="contained" disabled={minutes == 10080} onClick={() => setMinutes(10080)}>
               1 week
             </Button>
-            <Button variant="contained" disabled={minutes > 1440} onClick={() => setMinutes(new Date().getTime() - 3600000*2/1000/60)}>
+            <Button variant="contained" disabled={minutes > 10080} onClick={() => setMinutes((new Date().getTime() - 3600000)/1000/60)}>
               All
             </Button>
           </Container>
@@ -170,7 +170,7 @@ const StationPage = ({ stationId }: Props) => {
                 max: 100,
               },
               xaxis: {
-                categories: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000*2 > new Date().getTime() - minutes*60*1000).map((data) => new Date(data.timestamp).getTime()+3600000*2),
+                categories: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000 > new Date().getTime() - minutes*60*1000).map((data) => new Date(data.timestamp).getTime()+3600000*2),
                 type: 'datetime',
               },
               stroke: {
@@ -185,7 +185,7 @@ const StationPage = ({ stationId }: Props) => {
               }
             }} series= {[{
               name: 'Brightness',
-              data: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000*2 > new Date().getTime() - minutes*60*1000).map((data) => data.brightness)
+              data: telemetry.filter((data) => new Date(data.timestamp).getTime()+3600000 > new Date().getTime() - minutes*60*1000).map((data) => data.brightness)
             }] }
             type="line" height={350} />
             </Paper>
